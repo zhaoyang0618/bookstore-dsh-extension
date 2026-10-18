@@ -235,12 +235,20 @@ async function runConversion(plan: ConversionPlan, timeoutMs: number, signal: Ab
   fallback: string;
 }> {
   const { spawn } = await import('node:child_process');
-  const available = await commandExists(plan.command);
-  if (!available) {
-    return { kind: plan.kind, command: plan.command, args: plan.args, executed: false, output: `命令不存在：${plan.command}`, fallback: plan.fallback };
+  // 解析出可执行文件的绝对路径（PATH 缺失 Homebrew 目录时也能找到）
+  const resolved = await resolveCommand(plan.command);
+  if (resolved === undefined) {
+    return {
+      kind: plan.kind,
+      command: plan.command,
+      args: plan.args,
+      executed: false,
+      output: installHint(plan.command),
+      fallback: plan.fallback,
+    };
   }
   return new Promise((resolve, reject) => {
-    const child = spawn(plan.command, plan.args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(resolved, plan.args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs);
@@ -275,25 +283,108 @@ async function runConversion(plan: ConversionPlan, timeoutMs: number, signal: Ab
   });
 }
 
-/** 判断命令是否存在于 PATH。 */
-async function commandExists(command: string): Promise<boolean> {
-  if (command.includes('/')) {
-    const { access } = await import('node:fs/promises');
+/**
+ * 定位一个外部可执行文件。
+ *
+ * 为什么不能只依赖 PATH：dsh 可能由 GUI 启动（Finder / 桌面 App），
+ * 那种进程的 PATH 通常只有 `/usr/bin:/bin`，不包含 `/opt/homebrew/bin`，
+ * 于是 `pandoc` 明明装了却探测不到。
+ *
+ * 因此按以下顺序查找：
+ * 1. 绝对路径（含 `/`）→ 直接检查可执行权限
+ * 2. PATH 里的 `which` / `where`
+ * 3. 各平台常见安装目录
+ *
+ * @returns 可执行文件的绝对路径；找不到时返回 undefined
+ */
+export async function resolveCommand(command: string): Promise<string | undefined> {
+  const { access, constants } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+
+  const isExecutable = async (path: string): Promise<boolean> => {
     try {
-      await access(command);
+      await access(path, constants.X_OK);
       return true;
     } catch {
       return false;
     }
+  };
+
+  // 1. 绝对 / 相对路径
+  if (command.includes('/') || command.includes('\\')) {
+    return (await isExecutable(command)) ? command : undefined;
   }
+
+  // 2. PATH
   const { execFile } = await import('node:child_process');
   const which = process.platform === 'win32' ? 'where' : 'which';
-  return new Promise((resolve) => {
-    execFile(which, [command], (error) => {
-      resolve(!error);
-      return undefined;
+  const fromPath = await new Promise<string | undefined>((resolve) => {
+    execFile(which, [command], (error, stdout) => {
+      if (error) {
+        resolve(undefined);
+        return;
+      }
+      const first = stdout.split(/\r?\n/).map((line) => line.trim()).find((line) => line.length > 0);
+      resolve(first);
     });
   });
+  if (fromPath !== undefined && (await isExecutable(fromPath))) return fromPath;
+
+  // 3. 常见安装目录（覆盖 Homebrew / MacPorts / Linux 包管理器 / Windows）
+  const candidates: string[] = [];
+  if (process.platform === 'win32') {
+    const programFiles = process.env['ProgramFiles'] ?? 'C:\\Program Files';
+    const localAppData = process.env['LOCALAPPDATA'] ?? '';
+    candidates.push(
+      join(programFiles, command, `${command}.exe`),
+      localAppData === '' ? '' : join(localAppData, 'Programs', command, `${command}.exe`),
+    );
+  } else {
+    // 此分支已排除 win32，直接使用命令名
+    const exe = command;
+    candidates.push(
+      `/opt/homebrew/bin/${exe}`, // Apple Silicon Homebrew
+      `/usr/local/bin/${exe}`, // Intel Homebrew / 手动安装
+      `/opt/local/bin/${exe}`, // MacPorts
+      `/usr/bin/${exe}`,
+      `/bin/${exe}`,
+      join(process.env['HOME'] ?? '', '.local/bin', exe),
+    );
+  }
+  for (const candidate of candidates) {
+    if (candidate.length > 0 && (await isExecutable(candidate))) return candidate;
+  }
+  return undefined;
+}
+
+/** 判断命令是否可用（兼容旧调用）。 */
+async function commandExists(command: string): Promise<boolean> {
+  return (await resolveCommand(command)) !== undefined;
+}
+
+/** 生成"未安装"时的可操作提示。 */
+export function installHint(command: string): string {
+  switch (command) {
+    case 'pandoc':
+      return '未找到 pandoc。请自行安装：macOS `brew install pandoc`；Windows `winget install --id JohnMacFarlane.Pandoc`；Linux 见 https://pandoc.org/installing.html';
+    case 'ddjvu':
+      return '未找到 ddjvu。请自行安装 djvulibre：macOS `brew install djvulibre`；Windows 从 http://djvu.sourceforge.net/ 下载；Linux `apt install djvulibre-bin`。或改用 `ddjvu` 之外的工具先转 PDF。';
+    default:
+      return `未找到 ${command}，请先安装后重试。`;
+  }
 }
 
 export { Config, apply, inject, name };
+
+/**
+ * 测试与外部调用入口：直接跑一次转换计划。
+ *
+ * @internal 产品路径请走工具调用；这里导出是为了能对真实 pandoc/ddjvu 做端到端验证。
+ */
+export async function runConversionForTest(
+  plan: ConversionPlan,
+  timeoutMs = 120000,
+  signal: AbortSignal = new AbortController().signal,
+): Promise<Awaited<ReturnType<typeof runConversion>>> {
+  return runConversion(plan, timeoutMs, signal);
+}

@@ -80,12 +80,46 @@ MYLIBRARY_ROOT=/path/to/MyLibrary DSH_HOME=/path/to/dsh-home dsh --profile ebook
 
 所有工具都**不注册** `ConversationNodeDefinition`，因此不出现在 Chat 消息流中（设计文档 2.3）。
 
+## 外部工具依赖（用户自备，软件不安装）
+
+`dsh-tool-convert` 依赖两个命令行工具完成格式转换。**本软件不负责安装它们**
+——插件只做探测、调用、以及在缺失时给出安装指引。
+
+| 工具 | 用途 | 安装方式 |
+|---|---|---|
+| `pandoc` | Markdown → DOCX | macOS `brew install pandoc`；Windows `winget install --id JohnMacFarlane.Pandoc`；Linux 见 [pandoc.org/installing](https://pandoc.org/installing.html) |
+| `ddjvu` | DjVu → PDF | macOS `brew install djvulibre`；Windows 从 [djvu.sourceforge.net](http://djvu.sourceforge.net/) 下载；Linux `apt install djvulibre-bin` |
+
+### 关于 PATH 的坑
+
+dsh 若由 GUI（Finder / 桌面 App）启动，其进程 PATH 通常只有 `/usr/bin:/bin`，
+**不包含 `/opt/homebrew/bin`**——于是 `pandoc` 明明装了却探测不到。
+
+插件因此实现了多级探测（`resolveCommand`）：
+
+1. 绝对路径 → 直接检查可执行权限
+2. `PATH` 里的 `which` / `where`
+3. 各平台常见目录：`/opt/homebrew/bin`、`/usr/local/bin`、`/opt/local/bin`、`~/.local/bin`
+
+所以即使 PATH 不完整也能找到。若装在非常规位置，可在插件配置里写绝对路径：
+
+```yaml
+- id: dsh-tool-convert
+  config:
+    pandocCommand: '/custom/path/to/pandoc'
+    ddjvuCommand: '/custom/path/to/ddjvu'
+```
+
+工具缺失时不会抛错，而是返回 `executed: false` 并附带安装提示，前端可据此引导用户。
+
 ## 已验证
 
 - 六个插件 `pnpm build` 全部通过，`tsc --noEmit` 零错误
 - 六个插件模块可被真实 dsh 运行时加载（peer 依赖从 dsh 宿主解析）
 - 真实 `dsh --profile ebook` 启动成功，`--dump-config` 确认六个插件进入组合树
-- 14 个激活测试：每个插件的 `apply()` 真的把工具注册进 `ctx.tools`，输出 schema 通过真实返回值校验
+- **36 个测试**：14 个激活测试 + 9 个百度分片上传 + 13 个真实格式转换
+- 格式转换是**真跑 pandoc / ddjvu**：Markdown→DOCX 产物是合法 ZIP（PK 头），
+  DjVu→PDF 产物通过 `pdfinfo` 校验出 1 页
 - `apps/ebook-reader` `vite build` 成功，foliate-js 与 PDF.js 正确分包
 
 ## 阅读器渲染引擎（设计文档 2.4）

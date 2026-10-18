@@ -29,8 +29,19 @@ jobs:
       - name: 插件构建
         run: pnpm -r --filter './packages/**' run build
 
+      - name: 安装格式转换工具（端到端测试用；软件本身不安装，由用户自备）
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq pandoc djvulibre-bin poppler-utils
+
       - name: 插件激活测试（14 个）
         run: pnpm --filter dsh-tool-ebook exec vitest run
+
+      - name: 图书馆工具测试（9 个，含百度分片上传）
+        run: pnpm --filter dsh-tool-library exec vitest run
+
+      - name: 格式转换端到端测试（13 个，真实 pandoc / ddjvu）
+        run: pnpm --filter dsh-tool-convert exec vitest run
 
       - name: 阅读器前端构建
         run: pnpm --filter ebook-reader run build
