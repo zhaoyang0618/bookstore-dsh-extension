@@ -1,0 +1,24 @@
+{
+  "name": "dsh-profile-ebook",
+  "private": true,
+  "version": "0.1.0",
+  "description": "dsh 扩展版 profile — 电子书阅读与知识管理（设计文档第二部分）",
+  "type": "module",
+  "dependencies": {
+    "dsh-tool-ebook": "workspace:*",
+    "dsh-tool-library": "workspace:*",
+    "dsh-tool-convert": "workspace:*",
+    "dsh-tool-translate": "workspace:*",
+    "dsh-tool-wiki": "workspace:*",
+    "dsh-tool-password": "workspace:*"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app"
+      ],
+      "patchReload": "live"
+    }
+  }
+}

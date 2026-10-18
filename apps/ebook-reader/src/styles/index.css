@@ -1,0 +1,507 @@
+/* 电子书阅读器 — 基础样式（设计文档 2.4） */
+
+:root {
+  --bg: #f7f6f3;
+  --surface: #ffffff;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --border: #e5e7eb;
+  --shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-nav {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.app-nav a:hover,
+.app-nav a.active {
+  color: var(--accent);
+}
+
+.app-error {
+  margin: 0.5rem 1.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.app-main {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+/* ---------- 图书馆 ---------- */
+
+.library-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.library-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.library-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+button {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.library-group {
+  margin-bottom: 2rem;
+}
+
+.library-group h2 {
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.book-card {
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.book-card:hover {
+  transform: translateY(-2px);
+}
+
+.book-card h3 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.book-cover {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #eef2f7;
+}
+
+.book-cover-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--muted);
+}
+
+.book-author {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.book-progress {
+  height: 4px;
+  margin: 0.5rem 0 0.25rem;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.book-progress-bar {
+  height: 100%;
+  background: var(--accent);
+}
+
+.book-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.book-sync {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.sync-badge {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  background: #f3f4f6;
+  color: var(--muted);
+}
+
+.sync-synced {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.sync-local_only {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.sync-partial {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.sync-missing {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.book-tags {
+  margin: 0.4rem 0 0;
+  color: var(--accent);
+  font-size: 0.7rem;
+}
+
+/* ---------- 悬空引用（设计文档 1.8.3） ---------- */
+
+.dangling {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+}
+
+.dangling h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.dangling p {
+  margin: 0.35rem 0;
+  font-size: 0.85rem;
+}
+
+.dangling ul {
+  margin: 0.35rem 0;
+  padding-left: 1.25rem;
+  font-size: 0.8rem;
+}
+
+.dangling-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ---------- 阅读器 ---------- */
+
+.reader {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 8rem);
+}
+
+.reader-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.reader-title {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.reader-viewport {
+  flex: 1;
+  padding: 1.5rem;
+  overflow: auto;
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.reader-empty {
+  padding: 3rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.reader-selection {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 32rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
+}
+
+.reader-selection-text {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.reader-selection-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.hl-yellow {
+  background: #fef08a;
+}
+
+.hl-green {
+  background: #bbf7d0;
+}
+
+.hl-blue {
+  background: #bfdbfe;
+}
+
+.hl-pink {
+  background: #fbcfe8;
+}
+
+.reader-translation {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ---------- 录课 ---------- */
+
+.record-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.record-stage {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.record-canvas {
+  display: block;
+  width: 100%;
+}
+
+.record-camera {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  width: 200px;
+  border: 2px solid #fff;
+  border-radius: 6px;
+}
+
+.record-ink-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.record-controls {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.record-start {
+  padding: 0.5rem 1.25rem;
+  font-size: 1rem;
+}
+
+.record-stop {
+  padding: 0.5rem 1.25rem;
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.record-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.record-list h2 {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.record-list li {
+  padding: 0.35rem 0;
+  font-size: 0.85rem;
+}
+
+.record-anchor {
+  margin-left: 0.5rem;
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+/* ---------- Wiki ---------- */
+
+.wiki {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.5rem;
+  height: calc(100vh - 8rem);
+}
+
+.wiki-sidebar h1 {
+  font-size: 1.1rem;
+}
+
+.wiki-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.wiki-list button {
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.wiki-list button.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.wiki-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.wiki-header h2 {
+  margin: 0;
+}
+
+.wiki-tags {
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+
+.wiki-body {
+  line-height: 1.7;
+}
+
+.wiki-editor {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.wiki-links h4 {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.wiki-links ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.wiki-links button {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 0.1rem 0;
+}
+
+/* ---------- 正文 ---------- */
+
+.markdown-body {
+  max-width: 42rem;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+
+.txt-body {
+  max-width: 40rem;
+  margin: 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}

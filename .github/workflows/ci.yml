@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖（含 mylibrary 依赖）
+        run: pnpm install
+
+      - name: 插件类型检查
+        run: pnpm -r --filter './packages/**' run typecheck
+
+      - name: 插件构建
+        run: pnpm -r --filter './packages/**' run build
+
+      - name: 插件激活测试（14 个）
+        run: pnpm --filter dsh-tool-ebook exec vitest run
+
+      - name: 阅读器前端构建
+        run: pnpm --filter ebook-reader run build

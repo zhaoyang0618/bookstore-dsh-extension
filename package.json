@@ -1,0 +1,16 @@
+{
+  "name": "dsh-ebook-extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "dsh 扩展版 — 电子书阅读与知识管理工具插件集（设计文档第二部分）",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter './packages/**' run build",
+    "typecheck": "pnpm -r --filter './packages/**' run typecheck",
+    "test": "pnpm -r --filter './packages/**' run test"
+  }
+}

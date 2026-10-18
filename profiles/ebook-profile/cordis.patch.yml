@@ -1,0 +1,71 @@
+# dsh 扩展版 profile — 用户自己的 patch 层（设计文档 2.1：上游零修改）
+#
+# 这个文件放在 $DSH_HOME/profiles/<name>/cordis.patch.yml，
+# 在 @deepseek-ai/dsh-base 与 @deepseek-ai/dsh-web-app 两个 bundle 之后应用。
+# 所有插件都是 insert，不修改 dsh 仓库任何文件。
+#
+# 安装方式：
+#   dsh --profile ebook --from-default-profile web
+#   然后把本文件复制为 $DSH_HOME/profiles/ebook/cordis.patch.yml
+#   并在该目录执行 dsh plugin --profile ebook add <插件包>
+
+- insert:
+    # ---------- 电子书工具 ----------
+    - id: dsh-tool-ebook
+      name: 'dsh-tool-ebook'
+      config:
+        readerBaseUrl: 'http://127.0.0.1:5173'
+        libraryRoot: !!js process.env.MYLIBRARY_ROOT ?? ''
+
+    # ---------- 图书馆工具 ----------
+    - id: dsh-tool-library
+      name: 'dsh-tool-library'
+      config:
+        libraryBaseUrl: 'http://127.0.0.1:5173'
+        libraryRoot: !!js process.env.MYLIBRARY_ROOT ?? ''
+        clientId: !!js process.env.MYLIBRARY_CLIENT_ID ?? 'dsh-extension-client'
+        clientType: 'dsh-extension'
+        # 平台由插件在运行时从 process.platform 推导，这里给静态默认值
+        clientPlatform: 'macos'
+    # ---------- 格式转换工具 ----------
+    - id: dsh-tool-convert
+      name: 'dsh-tool-convert'
+      config:
+        pandocCommand: 'pandoc'
+        ddjvuCommand: 'ddjvu'
+        timeoutMs: 120000
+
+    # ---------- 翻译工具 ----------
+    - id: dsh-tool-translate
+      name: 'dsh-tool-translate'
+      config:
+        defaultTargetLang: 'zh'
+        maxChars: 8000
+        timeoutMs: 60000
+
+    # ---------- Wiki 工具 ----------
+    - id: dsh-tool-wiki
+      name: 'dsh-tool-wiki'
+      config:
+        wikiBaseUrl: 'http://127.0.0.1:5174'
+        libraryRoot: !!js process.env.MYLIBRARY_ROOT ?? ''
+        localMode: true
+
+    # ---------- 密码管理器入口 ----------
+    - id: dsh-tool-password
+      name: 'dsh-tool-password'
+      config:
+        vaultBaseUrl: 'http://127.0.0.1:8787'
+        probeTimeoutMs: 3000
+
+# ---------- llm-wiki-mcp 作为 MCP 服务接入（设计文档 2.8，可选） ----------
+# 取消下面注释即可让 wiki 工具同时以 mcp__wiki__* 命名空间出现。
+# - id: mcp-wiki
+#   name: '@deepseek-ai/dsh-mcp-client'
+#   config:
+#     serverName: wiki
+#     transport: stdio
+#     command: node
+#     args: ['services/wiki-mcp/dist/server.js']
+#     env:
+#       MYLIBRARY_ROOT: !!js process.env.MYLIBRARY_ROOT ?? ''
