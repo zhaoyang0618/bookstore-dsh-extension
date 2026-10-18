@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "~3.18.4",
-    "@bookstore/mylibrary-core": "file:../../../mylibrary",
     "mylibrary-core": "github:zhaoyang0618/bookstore-mylibrary"
   },
   "peerDependencies": {
