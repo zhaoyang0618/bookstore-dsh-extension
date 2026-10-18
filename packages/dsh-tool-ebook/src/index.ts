@@ -14,7 +14,7 @@
 import z from '@deepseek-ai/schemastery';
 import { defineTool } from '@deepseek-ai/dsh-tools';
 import { FsError } from '@deepseek-ai/dsh-fs';
-import { inferFormat, MyLibraryError, type BookFormat } from '@bookstore/mylibrary-core';
+import { inferFormat, MyLibraryError, type BookFormat } from 'mylibrary-core';
 import type { Context } from '@deepseek-ai/cordis';
 import type { ToolRuntime } from '@deepseek-ai/dsh-tools';
 import type { FileSystem as FsService } from '@deepseek-ai/dsh-fs';

@@ -213,7 +213,7 @@ describe('dsh-tool-library 激活', () => {
   });
 
   it('validateRemoteSource 校验网盘配置', async () => {
-    const { validateDocument } = await import('@bookstore/mylibrary-core');
+    const { validateDocument } = await import('mylibrary-core');
     expect(validateDocument('remote-source', { baseUrl: 'https://dav.jianguoyun.com/dav/', username: 'u', password: 'p', rootPath: '/MyLibrary' }).ok).toBe(true);
     expect(validateDocument('remote-source', { baseUrl: 'not-a-url', username: 'u', password: 'p', rootPath: '/' }).ok).toBe(false);
     expect(validateDocument('remote-source', { accessToken: 't', appName: 'ebook' }).ok).toBe(true);
