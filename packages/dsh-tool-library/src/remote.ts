@@ -13,6 +13,9 @@
  * @module dsh-tool-library/remote
  */
 
+import { createHash } from 'node:crypto';
+import { basename } from 'node:path';
+
 /** 网盘上的一个文件 / 目录条目。 */
 export interface RemoteFile {
   /** 网盘上的完整路径。 */
@@ -224,11 +227,79 @@ export class BaiduProvider implements RemoteProvider {
     await writeLocal(localPath, Buffer.from(await file.arrayBuffer()));
   }
 
+  /**
+   * 上传文件（设计文档 1.8.6 分片流程）。
+   *
+   * 百度网盘的上传是三步协议，与 WebDAV 的一次 PUT 完全不同：
+   * 1. `precreate` —— 提交文件元信息与分片 md5 列表，拿到 `uploadid`
+   * 2. 逐片 `superfile2` —— 上传每个分片
+   * 3. `create` —— 合并分片，生成最终文件
+   *
+   * 分片大小限制：普通用户 4 MiB，会员 16 MiB，这里用 4 MiB 保守值。
+   */
   async uploadFile(localPath: string, remotePath: string): Promise<void> {
-    // 百度网盘分片上传（设计文档 1.8.6）：这里只实现单步 precreate + 单分片上传的最小路径
-    const preUrl = `/rest/2.0/xpan/file?method=precreate&access_token=${encodeURIComponent(this.config.accessToken)}`;
-    void preUrl;
-    throw new Error('百度网盘上传需要分片流程，请改用 WebDAV 适配器或 alist 挂载');
+    const content = await readLocal(localPath);
+    const chunkSize = 4 * 1024 * 1024;
+    const totalParts = Math.max(1, Math.ceil(content.length / chunkSize));
+    const blockList = Array.from({ length: totalParts }, (_, index) => {
+      const slice = content.subarray(index * chunkSize, Math.min((index + 1) * chunkSize, content.length));
+      return createHash('md5').update(slice).digest('hex');
+    });
+    const accessToken = encodeURIComponent(this.config.accessToken);
+
+    // 1. precreate：拿 uploadid
+    const preResponse = await this.fetcher(
+      `https://pan.baidu.com/rest/2.0/xpan/file?method=precreate&access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          path: remotePath,
+          size: String(content.length),
+          isdir: '0',
+          autoinit: '1',
+          rtype: '3',
+          block_list: JSON.stringify(blockList),
+        }),
+      },
+    );
+    if (!preResponse.ok) throw new Error(`百度网盘 precreate 失败：HTTP ${preResponse.status}`);
+    const preResult = (await preResponse.json()) as { uploadid?: string; return_type?: number };
+    const uploadId = preResult.uploadid;
+    if (uploadId === undefined) throw new Error(`百度网盘 precreate 未返回 uploadid：${JSON.stringify(preResult)}`);
+
+    // 2. 逐片上传
+    for (let index = 0; index < totalParts; index += 1) {
+      const slice = content.subarray(index * chunkSize, Math.min((index + 1) * chunkSize, content.length));
+      const form = new FormData();
+      form.append('partseq', String(index));
+      form.append('file', new Blob([slice]), basename(remotePath));
+      const partResponse = await this.fetcher(
+        `https://d.pcs.baidu.com/rest/2.0/pcs/superfile2?method=upload&access_token=${accessToken}&type=tmpfile&path=${encodeURIComponent(remotePath)}&uploadid=${encodeURIComponent(uploadId)}`,
+        { method: 'POST', body: form },
+      );
+      if (!partResponse.ok) throw new Error(`百度网盘分片 ${index} 上传失败：HTTP ${partResponse.status}`);
+    }
+
+    // 3. create：合并
+    const createResponse = await this.fetcher(
+      `https://pan.baidu.com/rest/2.0/xpan/file?method=create&access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          path: remotePath,
+          size: String(content.length),
+          isdir: '0',
+          rtype: '3',
+          uploadid: uploadId,
+          block_list: JSON.stringify(blockList),
+        }),
+      },
+    );
+    if (!createResponse.ok) throw new Error(`百度网盘 create 失败：HTTP ${createResponse.status}`);
+    const createResult = (await createResponse.json()) as { return_type?: number };
+    if (createResult.return_type === 1) throw new Error('百度网盘 create 合并失败');
   }
 
   async copyFile(src: string, dst: string): Promise<void> {
